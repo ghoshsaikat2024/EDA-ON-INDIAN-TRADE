@@ -1,0 +1,530 @@
+---
+title: "EDA ON INDIAN TRADE OF 2021-22 & 2022-23"
+author: "Saikat Kumar Ghosh"
+date: "2023-11-05"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Loading the libraries.
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(ggpubr)
+```
+
+This data has been taken from Indian government's Ministry of Commerce's website.
+
+The data has Country wise ,Commodity wise all information of Export & Import of last two years.
+
+Primary Objectives of this EDA:
+
+1.To be able to tell about India's Export vs Import percentage of last two financial years.
+
+2.Top trading partners of India.
+
+3.Export vs Import percentage with other countries of last two years.
+
+4.Top Commodities which India exports in other countries.
+
+5.Top commodities which India imports from other countries.
+
+6.Top 15 High Growth Export Commodities .
+
+7.Top 15 High Growth Import Commodities.
+
+Importing the data and Cleaning it.
+
+```{r}
+#Importing the excel file of trade data of all countries with india.
+trade_data<-read_excel("E:/Learning_related/R_codes/R_During_Msc/EDA/EDA_DATA_Main.xlsx",sheet = "AllCountrywiseTrade")
+#View(trade_data)
+print(trade_data)
+#Replacing NA values with 0.Here we have taken only the columns with numeric values otherwise it will through error .
+#Here trade_data[3:6] creates a data.frame taking 3rd to 6th column and within that we replace NA values with zeros.
+trade_data[3:6][is.na(trade_data[3:6])]<-0.00
+
+#View(trade_data)
+
+#Creating two new columns under the name Total_trade(2021-2022) &Total_trade(2022-2023)
+`Total_trade(2021-2022)`<-trade_data$`Export(2021-2022)`+trade_data$`Import(2021-2022)`
+`Total_trade(2022-2023)`<-trade_data$`Export(2022-2023)`+trade_data$`Import(2022-2023)`
+`Trade_Growth`<-((`Total_trade(2022-2023)`-`Total_trade(2021-2022)`)/`Total_trade(2021-2022)`)*100
+
+#Adding new column under the name Total_trade & Trade_Balance for both years.
+trade_data<-cbind(trade_data,`Total_trade(2021-2022)`,`Total_trade(2022-2023)`,`Trade_Growth`)
+trade_data$Trade_Growth[is.na(trade_data$Trade_Growth)|is.infinite(trade_data$Trade_Growth)]<-0.00
+
+View(trade_data)
+
+
+#Sorting the data in descending order of Total_trade(2021-2022) 
+sorted_data21.22<-trade_data[rev(order(trade_data$`Total_trade(2021-2022)`)),]
+
+#Sorting the data in descending order of Total_trade(2022-2023).Order() by deafult returns indices as per ascending order.
+sorted_data22.23<-trade_data[rev(order(trade_data$`Total_trade(2022-2023)`)),]
+#Creating a new table of top10 trading partners based on the Total_trade column.
+`Top.10.trading.parteners(2021-2022)`<-sorted_data21.22[1:10,]
+#Creating new data.frame of top10 trading partners based on the Total_trade column.
+`Top.10.trading.parteners(2022-2023)`<-sorted_data22.23[1:10,]
+
+#Sorting the Countries wrt total trade growth .
+sorted_on.Trade_growth<-trade_data[rev(order(trade_data$`Trade_Growth`)),]
+Top10.countries.trade_growth<-sorted_on.Trade_growth[1:10,]
+
+#View(Top10.countries.trade_growth)
+
+#Commodity wise export Data.
+commodity_export<-read_excel("E:/Learning_related/R_codes/R_During_Msc/EDA/EDA_DATA_Main.xlsx",sheet = "CommoditywiseExport")
+
+View(commodity_export)
+#Commodity wise import Data.
+commodity_import<-read_excel("E:/Learning_related/R_codes/R_During_Msc/EDA/EDA_DATA_Main.xlsx",sheet = "CommoditywiseImport")
+
+View(commodity_import)
+
+```
+
+Year wise total export import comparison:
+
+Few Terms:
+
+Trade Balance: Total Export-Total Import.(Negative Trade Balance means the country has trade deficit)
+
+Trade Deficit:Total Import- Total Export.
+
+When Trade Balance is positive it is called Trade Surplus whereas for negative Trade Balance it is called Trade Deficit.
+
+As we can see that India's Import percentage of last two years is 59.24% & 61.3% respectively,whereas the Export percentage is:40.76% & 38.7% of total trade.
+
+So clearly India has Trade Deficit of 18.48% for FY2021-22 & Trade Deficit of 22.6% for FY2022-23.
+
+Moreover we can see that in Fy2022-23 India's trade deificit has increased by 22.28 % compared to Fy2021-22.
+
+```{r}
+#Yearwise total expott import comparison.
+#Pie chart for 2021-22 data.
+slices.1<-c(sum(trade_data$`Export(2021-2022)`),sum(trade_data$`Import(2021-2022)`))
+lbls.1<-c("Export","Import")
+pct.1<-round(slices.1/sum(slices.1)*100,digits = 2)
+lbls.1<-paste(lbls.1,pct.1)
+#adding percentage to the labels.
+lbls.1<-paste(lbls.1,"%",sep = "")
+
+FY.2021.22_pie<-pie(slices.1,labels=lbls.1,col=rainbow(length(slices.1)),
+    main = "Pie chart of Total Trade of FY2021-22")
+
+slices.2<-c(sum(trade_data$`Export(2022-2023)`),sum(trade_data$`Import(2022-2023)`))
+lbls.2<-c("Export","Import")
+pct.2<-round(slices.2/sum(slices.2)*100,digits = 2)
+lbls.2<-paste(lbls.2,pct.2)
+#adding percentage to the labels.
+lbls.2<-paste(lbls.2,"%",sep = "")
+
+FY.2022.23_pie<-pie(slices.2,labels=lbls.2,col=rainbow(length(slices.2)),
+    main = "Pie chart of Total Trade of FY2022-23")
+
+par(mfrow=c(1,2),mar = c(4, 4, 2, 1))
+pie(slices.1,labels=lbls.1,col=rainbow(length(slices.1)),
+    main = "Total Trade of FY2021-22")
+pie(slices.2,labels=lbls.2,col=rainbow(length(slices.2)),
+    main = "Total Trade of FY2022-23")
+#FY.2021.22_pie
+#FY.2022.23_pie
+#grid.arrange(FY.2021.22_pie,FY.2022.23_pie,ncol=2)
+```
+
+Year wise top 10 trading partners:
+
+1.Here we can see that USA,China & UAE holds the top spot when it comes to trade with india.
+
+2.As we can see from the graph that Russia was not the the top 10 list in FY2021-22.But it holds the 5th spot in top trading partners in FY2022-23.
+
+Note:During Russia Ukraine war when UN imposed sactions on Russia ,India imported crude oil at heavy discounts from Russia .
+
+```{r}
+
+FY2021_22<-ggplot(`Top.10.trading.parteners(2021-2022)`,aes(x=reorder(Country,-`Total_trade(2021-2022)`),y=`Total_trade(2021-2022)`/1000,fill=Country))+
+  geom_bar(stat="identity")+
+  ylim(0,130)+
+  labs(x="Country",
+  y="Total trade in USD billion",
+  title = "Top 10 trading partners of India",
+  subtitle ="FY2021_22")+
+  scale_fill_manual(values = c( "green", "blue", "orange", "purple", "pink","brown", "cyan", "yellow","magenta", "gold"))+
+  theme(legend.position = "none",axis.text.x= element_text(angle = 45, hjust = 1, size = 8))
+  
+  
+#reorder(xaxis_column,-yaxis_column) has been used to reorder the bar graphs in descending order of height of the bars.
+#For ascending order change '-' sigh into '+'
+#Syntax for using reorder:ggplot(dataframe name, aes(x=reorder(column1,±column2),y=column2)
+
+FY2022_23<-ggplot(`Top.10.trading.parteners(2022-2023)`,aes(x=reorder(Country,-`Total_trade(2022-2023)`),y=`Total_trade(2022-2023)`/1000,fill=Country))+
+  geom_bar(stat="identity")+
+  ylim(0,130)+
+  labs(x="Country",
+       y="Total trade in USD billion",
+       title = "Top 10 trading partners of India",
+       subtitle="FY2022_23")+
+  scale_fill_manual(values = c("blue", "orange", "purple", "pink","brown","red", "cyan", "yellow","magenta", "gold"))+
+  theme(legend.position = "none",axis.text.x= element_text(angle = 45, hjust = 1, size = 8))
+  
+print(FY2022_23)
+print(FY2021_22)
+
+ggarrange(FY2021_22,FY2022_23,ncol = 2)
+
+#Growth plot of these top 10 trading partners.
+Growth_plt<-ggplot(`Top.10.trading.parteners(2022-2023)`,aes(x=reorder(Country,-Trade_Growth),y=Trade_Growth,fill=Country))+
+  geom_bar(stat = "identity")+
+  labs(y="%Growth",
+       x="Country",
+       title = "Percentage of Growth in Trade with India")+
+  theme(legend.position = "none",axis.text.x= element_text(angle = 45, hjust = 1, size = 8,face = "bold"))+
+  geom_text(aes(label=round(Trade_Growth,digits = 2)),vjust=-1,size=3)
+print(Growth_plt)
+```
+
+In the last graph we see trade growth of Russia with India is the highest (a staggering 276.08 percentage of increase in Trade relation with india.Reason:Russia Ukraine War,Sanctions on Russia by UN and import of Crude Oil from Russia at heavy discounted prices.
+
+Country wise export import comparison of 2021-22:
+
+From the plot below we can clearly see that India has negative Trade Balance for most of its trading partners other than USA.
+
+For Iraq ,China & Saudi Arab the trade deficit is highest,for Singapore,UAE &Hong Kong it is moderately on the positive side whereas only for USA India has negative trade deficit.
+
+Note: No matter what people say the data clearly shows that India is highly dependent on Chinese products.
+
+```{r}
+#2021-22 Country wise export import comparison.
+
+# Extract the data
+export.data<- `Top.10.trading.parteners(2021-2022)`$`Export(2021-2022)`
+import.data<- `Top.10.trading.parteners(2021-2022)`$`Import(2021-2022)`
+countries <- `Top.10.trading.parteners(2021-2022)`$Country
+data2021_22<-data.frame(countries,export.data,import.data)
+
+#View(data2021_22)
+
+
+#Reshaping the data manually without any external function to plot the data in multiple bar diagram.
+reshaped_data2021_22<-data.frame(
+  Country=rep(countries,each=2),
+  Trade_Type=rep(c("Export","Import"),10),
+  values=c(76167.01, 43314.07,21259.79, 94570.57,28044.88, 44833.48,8758.94, 34100.58,
+           2403.27, 31927.05,11150.61, 18962.19,10984.80, 19096.61,8471.51, 17702.83,
+           8085.03, 17477.20,8283.13, 16756.17)
+)
+
+#View(reshaped_data2021_22)
+
+#Multiple bar diagram.
+export_import_comparison.2021.22_1<-ggplot(reshaped_data2021_22,aes(x=Country,y=values,fill=Trade_Type))+
+  geom_bar(stat="identity",position = "dodge")+
+  ylim(0,100000)+
+  labs(y="USD million",
+       title = "Export Import Comparison of Fy2021-22",
+       fill="Trade Type")+
+  theme(axis.text.x =element_text(angle = 90,size=5) )
+
+print(export_import_comparison.2021.22_1)
+
+#stack diagram with same level.
+export_import_comparison.2021.22_2<-ggplot(reshaped_data2021_22,aes(x=Country,y=values,fill=Trade_Type))+
+  geom_bar(stat="identity",position = "fill")+
+  labs(y="Total Trade",
+       title = "Export Import Comparison of Fy2021-22",
+       fill="Trade Type")+
+  theme(axis.text.x =element_text(angle = 90,size=5) )
+
+print(export_import_comparison.2021.22_2)
+
+```
+
+Country wise export import comparison of 2022-23 :
+
+Here we can see that India has negative Trade Balance for most of its top trading partners other than USA.
+
+```{r}
+#2022-23 export import comparison.
+
+export.data <- `Top.10.trading.parteners(2022-2023)`$`Export(2022-2023)`
+import.data <- `Top.10.trading.parteners(2022-2023)`$`Import(2022-2023)`
+countries <- `Top.10.trading.parteners(2022-2023)`$Country
+data2022_23<-data.frame(countries,export.data,import.data)
+
+#View(data2022_23)
+
+reshaped_data2022_23<-data.frame(
+  Country=rep(countries,each=2),
+  Trade_Type=rep(c("Export","Import"),10),
+  values=c(78542.74, 50240.10,15306.10, 98505.79,31608.79, 53231.66,10727.65, 42035.27,3146.95, 46212.71,
+           10024.30, 28820.41,2696.72, 34385.50,11992.94, 23595.35,9892.61, 18274.95,
+           6654.10, 21227.32)
+)
+
+#View(reshaped_data2022_23)
+
+#Multiple bar diagram.
+export_import_comparison.2022.23_1<-ggplot(reshaped_data2022_23,aes(x=Country,y=values,fill=Trade_Type))+
+  geom_bar(stat="identity",position = "dodge")+
+  labs(y="USD million",
+       title = "Export Import Comparison of Fy2022-23",
+       fill="Trade Type")+
+  theme(axis.text.x =element_text(angle = 90,size=5))
+
+print(export_import_comparison.2022.23_1)
+
+#stack diagram with same level.
+export_import_comparison.2022.23_2<-ggplot(reshaped_data2022_23,aes(x=Country,y=values,fill=Trade_Type))+
+  geom_bar(stat="identity",position = "fill")+
+  labs(y="Total Trade",
+       title = "Export Import Comparison of Fy2022-23",
+       fill="Trade Type")+
+  theme(axis.text.x =element_text(angle = 90,size=5))
+
+print(export_import_comparison.2022.23_2)
+
+#Multiple plot in same page of export_import_comparison.2021.22_1,export_import_comparison.2022.23_1
+ggarrange(export_import_comparison.2021.22_1,export_import_comparison.2022.23_1,ncol=2)
+
+#Multiple plot in same page of export_import_comparison.2021.22_2,export_import_comparison.2022.23_2
+ggarrange(export_import_comparison.2021.22_2,export_import_comparison.2022.23_2,ncol = 2)
+```
+
+From the stacked bar diagram we can see that in in FY2021-22 for Iraq,China & Saudi Arab the percentage of trade deficit is the highest,for Singapore &UAE it is moderately high whereas for USA India has trade surplus.
+
+In FY2022-23 for Russia,Iraq & China the percentage of trade deficit is highest,for Singapore,UAE & Hong Kong it is moderately high whereas only for USA India has trade surplus.
+
+Commodity wise Export analysis:
+
+From this plot we can see that top 10 Exported commodities of both FY2021-22 &FY2022-23 where Mineral fuel,Natural /Cultured pearls and Nuclear Reactor and mechanical appliances holds the top 3 spot in FY2021-22 and Mineral fuel,Natural /Cultured pearls and Electrical equipments &appliances (Ex:TV ,Sound Recorders etc.) holds the top spot in FY2022-23.
+
+```{r}
+#Project Goods:LABORATORY CHEMICALS,CREWS BAGGAGE
+#Miscelleneous Goods:description not given clearly
+#Commoditywise Export analysis.
+
+#View(commodity_export)
+
+#sorted based on 2021-22 india's commodity export.
+sorted_export_data21.22<-commodity_export[rev(order(commodity_export$`2021-2022`)),]
+Top10.commodity_export_2021_22<-sorted_export_data21.22[1:10,]
+
+#View(Top10.commodity_export_2021_22)
+commodity.2021.22<-c("MINERAL,Crude Oil",
+                     "Natural/Cultered Pearls",
+                     "Nuc lear Reactors,Mechanical Appliances.",
+                     "Iron and Steel",
+                     "Organic Chemicals",
+                     "Electrical Machinary &Equipments",
+                     "VEHICLES PARTS & ACCESSORIES",
+                     "PHARMACEUTICAL PRODUCTS  ",
+                     "CEREALS",
+                     "COTTON")
+
+
+#Plotting top 10 commodity wise export for Fy2021-22. 
+p1 <- ggplot(Top10.commodity_export_2021_22, aes(x = reorder(HSCode, -`2021-2022`), y = `2021-2022`/1000, fill = Commodity)) +
+  geom_bar(stat = "identity") +
+  ylim(0,100)+
+  scale_fill_manual(values = c( "green", "blue", "orange", "purple", "pink","brown", "cyan", "yellow","magenta", "gold"))+
+  labs(title = "Top 10 Exported commodities of 2021-22", x = "commodity", y = "USD billion  ") +
+  geom_text(aes(label = round(`2021-2022`/1000,digits=2)), vjust = -0.8,size=3)+
+  scale_x_discrete(labels = commodity.2021.22)
+
+p1 <- p1 +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1, size = 7,face="bold"))
+  
+
+#sorted based on 2022-23 india's export.
+sorted_export_data22.23<-commodity_export[rev(order(commodity_export$`2022-2023`)),]
+Top10.commodity_export_2022_23<-sorted_export_data22.23[1:10,]
+#View(Top10.commodity_export_2022_23)
+commodity.2022.23<-c("Mineral,Crude Oil",
+                     "Natural/Cultered Pearls",
+                     "Electrical Machinary &Equipments",
+                     "Nuclear Reactors,Machinary",
+                     "ORGANIC CHEMICALS ",
+                     "VEHICLES PARTS & ACCESSORIES",
+                     "PHARMACEUTICAL PRODUCTS ",
+                     "CEREALS",
+                     "IRON AND STEEL",
+                     "IRON OR STEEL ")
+
+#Plotting top 10 commodity wise export for Fy2022-23.
+
+p2 <- ggplot(Top10.commodity_export_2022_23, aes(x = reorder(HSCode, -`2022-2023`), y = `2022-2023`/1000, fill = Commodity)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values =c("red", "green", "orange", "purple", "pink", "brown", "cyan", "yellow", "magenta", "gold")) +
+  labs(title = "Top 10 Exported commodities of 2022-23", x = "commodity", y = "USD billion  ") +
+  geom_text(aes(label = round(`2022-2023`/1000,digits=2)), vjust = -0.8,size=3)+
+  scale_x_discrete(labels = commodity.2022.23)
+
+p2 <- p2 +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1, size = 7,face="bold"))
+  # Create a single page with facets (one graph for each unique value)
+  
+# two export plots in single page.
+ggarrange(p1,p2,ncol=2)
+
+#sorting data on growth rate compared to previous year i.e data of high growth export commodities.
+
+High_growth_export<-commodity_export[rev(order(commodity_export$`%Growth`)),]
+View(High_growth_export)
+Top20.High_growth_export<-High_growth_export[1:15,]
+#View(Top20.High_growth_export)
+export.commoditynames<-c(
+  "ART PIECES & ANTIQUES",
+  "WOOD Pulp MATERIAL",
+  "NICKEL",
+  "ANIMAL FODDER",
+  "FERTILISERS",
+  "MISCELLANEOUS GOODS",
+  "PROJECT GOODS",
+  "Mineral,Crude Oil",
+  "Electrical Equipments",
+  "EXPLOSIVES PYROTECHNIC PRODUCTS",
+  "ANIMAL,VEGETABLE FATS AND OILS",
+  "ZINC ",
+  "TOBACCO&MANUFACTURED SUBSTITUTES",
+  "EDIBLE VEGETABLES&CERTAIN ROOTS",
+  "WOOL,COARSE ANIMAL HAIR"
+)
+#Top20.High_growth_export commodities plot.
+p3<-ggplot(Top20.High_growth_export, aes(x = reorder(HSCode, -`%Growth`), y = `%Growth`, fill = Commodity)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top 15 High growth Export commodities", x = "Commodity", y = "% Growth  ") +
+  scale_x_discrete(labels = export.commoditynames )+
+  theme(legend.position = "none",axis.text.x = element_text(angle =45,size=6,hjust=1,face="bold"))+
+  geom_text(aes(label=`%Growth`),vjust=-.5,size=4)
+  
+
+print(p3)
+
+
+```
+
+Next we have high growth export commodities.Here we can see highest increase in export of commodity compared to previous year.
+
+Where Works of art pieces&antiques,Pulp of wood/Fibrous cellulosic material,nickel,prepared animal fodder and fertilisers holds the top 5 spot .
+
+Commodity wise Import Analysis:
+
+```{r}
+#Feather, Flowers & Hair Goods:PREPARED FEATHERS&ARTIFICIAL FLOWERS;ARTICLES OF HUMAN HAIR
+#Mobility and Accessories:UMBRELLAS,WALKING-STICKS,SEAT-STICKS,WHIPS etc
+  
+#Import Analysis.
+#commodity_import<-read_excel("C:/Users/Admin/Desktop/EDA/EDA_DATA_Main.xlsx",sheet = "CommoditywiseImport")
+
+#View(commodity_import)
+
+sorted_import_data21.22<-commodity_import[rev(order(commodity_import$`2021-2022`)),]
+Top10.commodity_import_2021_22<-sorted_import_data21.22[1:10,]
+#View(Top10.commodity_import_2021_22)
+
+#Top10.commodity_import_2021_22 names
+import_commodity.2021.22 <- c(
+  "Crude Oil,Mineral Waxes",
+  "NATURAL/CULTURED PEARLS",
+  "Electrical Equipments",
+  "NUCLEAR REACTORS,MECHANICAL APPLIANCES",
+  "ORGANIC CHEMICALS",
+  "PLASTIC",
+  "PREPARED EDIBLE FATS",
+  "FERTILISERS",
+  "IRON AND STEEL",
+  "MEDICAL,SURGICAL INST& APPARATUS"
+)
+#Top10.commodity_import_2021_22 plot
+p4<-ggplot(Top10.commodity_import_2021_22, aes(x = reorder(Commodity, -`2021-2022`), y = `2021-2022`/1000, fill = Commodity)) +
+  geom_bar(stat = "identity") +
+  ylim(0,300)+
+  scale_fill_manual(values = c( "green", "blue", "orange", "purple", "pink","brown", "cyan","navy", "yellow","magenta"))+
+  labs(title = "Top 10 Imported commodities of 2021-22", x = "Commodity", y = "USD billion") +
+  geom_text(aes(label = round(`2021-2022`/1000,digits=2)), vjust = -1,size=3)+
+  scale_x_discrete(labels = import_commodity.2021.22)+
+  theme(legend.position = "none",axis.text.x = element_text(angle = 45,size=6,hjust=1,face = "bold") )
+
+print(p4)  
+
+#Sorting data based on top imported commodities of 2022-23.
+sorted_import_data22.23<-commodity_import[rev(order(commodity_import$`2022-2023`)),]
+Top10.commodity_import_2022_23<-sorted_import_data22.23[1:10,]
+#View(Top10.commodity_import_2022_23)
+
+import_commodity.2022.23 <- c(
+  "Crude Oil,Mineral Waxes",
+  "NATURAL/CULTURED PEARLS",
+  "Electrical Equipments",
+  "NUCLEAR REACTORS,MECHANICAL APPLIANCES",
+  "ORGANIC CHEMICALS",
+  "PLASTIC",
+  "EDIBLE FATS",
+  "IRON AND STEEL",
+  "FERTILISERS",
+  "INORGANIC CHEMICALS"
+)
+#INORGANIC CHEMICALS;RARE-EARTH METALS:
+#Top10.commodity_import_2022_23 plot
+p5<-ggplot(Top10.commodity_import_2022_23, aes(x = reorder(Commodity, -`2022-2023`), y = `2022-2023`/1000, fill = Commodity)) +
+  geom_bar(stat = "identity") +
+  ylim(0,300)+
+  scale_fill_manual(values = c( "green", "blue", "orange","red", "purple", "pink","brown", "cyan","yellow","magenta", "gold"))+
+  labs(title = "Top 10 Imported commodities of 2022-23", x = "Commodity", y = "USD billion ") +
+  geom_text(aes(label = round(`2022-2023`/1000,digits=2)), vjust = -1,size=3)+
+  scale_x_discrete(labels = import_commodity.2022.23)+
+  theme(legend.position = "none",axis.text.x = element_text(angle = 45,size=6,hjust=1,face="bold") )
+
+print(p5)
+
+#Multipleplot in single page
+ggarrange(p5,p4,ncol=2)
+
+################################################
+#High growth import commodity analysis.
+High_growth_import<-commodity_import[rev(order(commodity_import$`%Growth`)),]
+#View(High_growth_import)
+Top15.High_growth_import<-High_growth_import[1:15,]
+#View(Top15.High_growth_import)
+
+
+import.commoditynames<-c(
+  "CEREALS",
+  "COTTON",
+  "WORKS OF ART PIECES &ANTIQUES",
+  "AIRCRAFT, SPACECRAFT &PARTS",
+  "SILK",
+  "Mobility and Accessories",
+  "SHIPS,BOATS &FLOATING STRUCTURES",
+  "Feather, Flowers & Hair Goods",
+  "DAIRY PRODUCE,NATURAL HONEY;",
+  "GUMS,RESINS,OTHER SAPS",
+  "Meat & Offal",
+  "PAPER&ARTICLES OF PAPER PULP",
+  "Sugar & Confectionery",
+  "FOOTWEAR, GAITERS etc",
+  "CLOTHING ACCESSORIES"
+
+)
+
+
+p6<-ggplot(Top15.High_growth_import, aes(x = reorder(Commodity, -`%Growth`), y = `%Growth`, fill = Commodity)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top 15 High growth Import commodities", x = "Commodity", y = "% Growth  ") +
+  geom_text(aes(label=`%Growth`),vjust=0)+
+  scale_x_discrete(labels = import.commoditynames )+
+  theme(legend.position = "none",axis.text.x = element_text(angle =45,size=6,hjust=1,face="bold"))
+
+print(p6)
+
+```
+
+From this plot we can see that top 10 Imported commodities by India in both FY2021-22 &FY2022-23 where Mineral fuel,Natural /Cultured pearls and Electrical& Machinary Equipments holds the top 3 spot in both FY2021-22 and FY2022-23.
+
+For high growth Import Commodities we can see Cereals,Cotton &Works of Antique pieces holds the top 3 spot.
+
+Data Source:<https://commerce.gov.in/trade-statistics/>
